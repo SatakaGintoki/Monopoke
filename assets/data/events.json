@@ -1,0 +1,58 @@
+[
+  {
+    "type": "GoodLuck",
+    "name": "\u8d22\u8fd0\u5ea6",
+    "description": "\u8d22\u8fd0\u5ea6\uff01\u83b7\u5f97 200 \u91d1\u5e01",
+    "gold_change": 200,
+    "probability": 0.2
+  },
+  {
+    "type": "GoodLuck",
+    "name": "\u5927\u8d62\u5bb6",
+    "description": "\u5927\u8d62\u5bb6\uff01\u83b7\u5f97 500 \u91d1\u5e01",
+    "gold_change": 500,
+    "probability": 0.1
+  },
+  {
+    "type": "BadLuck",
+    "name": "\u7834\u8d22\u6d88\u707e",
+    "description": "\u7834\u8d22\u6d88\u707e\uff01\u652f\u4ed8 150 \u91d1\u5e01",
+    "gold_change": -150,
+    "probability": 0.2
+  },
+  {
+    "type": "BadLuck",
+    "name": "\u7a9d\u8d66",
+    "description": "\u7a9d\u8d66\uff01\u652f\u4ed8 300 \u91d1\u5e01",
+    "gold_change": -300,
+    "probability": 0.1
+  },
+  {
+    "type": "MonsterHurt",
+    "name": "\u8ff7\u8c1c\u6d88\u8017",
+    "description": "\u7cbe\u7075\u9047\u5230\u8ff7\u8c1c\uff0c\u6d88\u8017 30 HP",
+    "hp_change": -30,
+    "probability": 0.15
+  },
+  {
+    "type": "MonsterHeal",
+    "name": "\u6cbb\u763e\u836f\u4e34",
+    "description": "\u6cbb\u763e\u836f\u4e34\uff01\u7cbe\u7075\u6062\u590d 50 HP",
+    "hp_change": 50,
+    "probability": 0.15
+  },
+  {
+    "type": "FreeCapture",
+    "name": "\u5e78\u8fd0\u6355\u83b7",
+    "description": "\u5e78\u8fd0\u6355\u83b7\uff01\u83b7\u5f97\u4e00\u53ea\u91ce\u751f\u7cbe\u7075",
+    "capture_bonus": true,
+    "probability": 0.05
+  },
+  {
+    "type": "MonsterLost",
+    "name": "\u7cbe\u7075\u8d70\u5931",
+    "description": "\u7cbe\u7075\u8d70\u5931\uff01\u4e00\u53ea\u7cbe\u7075\u88ab\u9a97\u8d70",
+    "monster_lost": true,
+    "probability": 0.05
+  }
+]

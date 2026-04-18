@@ -1,0 +1,137 @@
+[
+  {
+    "id": 1,
+    "name": "火花",
+    "type": "Fire",
+    "power": 40,
+    "pp": 25,
+    "accuracy": 1.0,
+    "category": "Special"
+  },
+  {
+    "id": 2,
+    "name": "撞击",
+    "type": "Normal",
+    "power": 35,
+    "pp": 35,
+    "accuracy": 1.0,
+    "category": "Physical"
+  },
+  {
+    "id": 3,
+    "name": "水炮",
+    "type": "Water",
+    "power": 40,
+    "pp": 25,
+    "accuracy": 1.0,
+    "category": "Special"
+  },
+  {
+    "id": 4,
+    "name": "缩壳",
+    "type": "Water",
+    "power": 0,
+    "pp": 40,
+    "accuracy": 1.0,
+    "category": "Physical"
+  },
+  {
+    "id": 5,
+    "name": "藤鞭",
+    "type": "Grass",
+    "power": 40,
+    "pp": 25,
+    "accuracy": 1.0,
+    "category": "Physical"
+  },
+  {
+    "id": 6,
+    "name": "寄生种子",
+    "type": "Grass",
+    "power": 0,
+    "pp": 20,
+    "accuracy": 0.9,
+    "category": "Physical"
+  },
+  {
+    "id": 7,
+    "name": "喷射火焰",
+    "type": "Fire",
+    "power": 70,
+    "pp": 15,
+    "accuracy": 1.0,
+    "category": "Special"
+  },
+  {
+    "id": 8,
+    "name": "水波动",
+    "type": "Water",
+    "power": 60,
+    "pp": 20,
+    "accuracy": 1.0,
+    "category": "Special"
+  },
+  {
+    "id": 9,
+    "name": "飞叶快刀",
+    "type": "Grass",
+    "power": 55,
+    "pp": 25,
+    "accuracy": 0.95,
+    "category": "Physical"
+  },
+  {
+    "id": 10,
+    "name": "啄",
+    "type": "Normal",
+    "power": 35,
+    "pp": 35,
+    "accuracy": 1.0,
+    "category": "Physical"
+  },
+  {
+    "id": 11,
+    "name": "旋风",
+    "type": "Normal",
+    "power": 40,
+    "pp": 30,
+    "accuracy": 0.95,
+    "category": "Special"
+  },
+  {
+    "id": 12,
+    "name": "飞翔",
+    "type": "Normal",
+    "power": 70,
+    "pp": 15,
+    "accuracy": 0.95,
+    "category": "Physical"
+  },
+  {
+    "id": 13,
+    "name": "落石",
+    "type": "Dark",
+    "power": 50,
+    "pp": 15,
+    "accuracy": 0.9,
+    "category": "Physical"
+  },
+  {
+    "id": 14,
+    "name": "电击",
+    "type": "Electric",
+    "power": 60,
+    "pp": 10,
+    "accuracy": 1.0,
+    "category": "Physical"
+  },
+  {
+    "id": 15,
+    "name": "破坏光线",
+    "type": "Normal",
+    "power": 80,
+    "pp": 10,
+    "accuracy": 0.85,
+    "category": "Special"
+  }
+]
