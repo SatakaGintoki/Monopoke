@@ -35,6 +35,12 @@ public:
     // 是否可升级
     bool can_upgrade() const { return level_ != PropertyLevel::Gym && has_owner(); }
 
+    // 存档恢复用（不改变格子类型与 index 时也可用）
+    void set_index(int idx) { index_ = idx; }
+    void set_type(TileType t) { type_ = t; }
+    void set_price(int p) { price_ = p; }
+    void set_property_level(PropertyLevel l) { level_ = l; }
+
 private:
     int index_ = 0;
     TileType type_ = TileType::Empty;

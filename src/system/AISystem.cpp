@@ -1,4 +1,5 @@
 #include "AISystem.h"
+#include "../entity/Board.h"
 #include "../utils/Random.h"
 #include "../utils/Types.h"
 
@@ -129,6 +130,33 @@ std::string AISystem::choose_item_to_buy(const Player& player) const {
     }
 
     return "";
+}
+
+int AISystem::choose_guardian_slot(const Player& player, const Board& board) const {
+    int best = -1;
+    int best_score = -1;
+    for (int i = 0; i < static_cast<int>(player.monsters().size()); ++i) {
+        const Monster& m = player.monsters()[i];
+        if (!m.is_alive()) {
+            continue;
+        }
+        bool used_elsewhere = false;
+        for (const Tile& t : board.tiles()) {
+            if (t.owner_id() == player.id() && t.has_guardian() && t.guardian_idx() == i) {
+                used_elsewhere = true;
+                break;
+            }
+        }
+        if (used_elsewhere) {
+            continue;
+        }
+        int score = m.atk() + m.def();
+        if (score > best_score) {
+            best_score = score;
+            best = i;
+        }
+    }
+    return best;
 }
 
 bool AISystem::should_use_heal_item(const Player& player) const {

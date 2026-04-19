@@ -40,6 +40,7 @@ private:
     Button tab_buttons_[2];
     Button back_button_;
     Button buy_button_;
+    sf::View ui_view_;
 
     int selected_index_ = -1;
     std::wstring message_;

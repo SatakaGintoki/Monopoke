@@ -54,6 +54,14 @@ public:
     bool is_bankrupt() const;
     int total_assets() const;  // 金币 + 所有地皮价值
 
+    // 存档读档
+    void set_id(int id) { id_ = id; }
+    void set_name(const std::string& n) { name_ = n; }
+    void set_gold(int g) { gold_ = std::max(0, g); }
+    void set_laps_completed(int laps) { laps_completed_ = std::max(0, laps); }
+    void clear_properties() { properties_.clear(); }
+    void clear_inventory() { inventory_.clear(); }
+
 private:
     int id_ = 0;
     std::string name_;

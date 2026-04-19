@@ -69,6 +69,7 @@ public:
 
     // 技能
     const std::vector<Skill>& skills() const { return skills_; }
+    void clear_skills() { skills_.clear(); }
     bool use_skill(int index);
 
     // 稀有度

@@ -58,10 +58,10 @@ int BattleSystem::calculate_damage(Monster& attacker, Monster& defender, const S
     float effectiveness = get_type_effectiveness(skill.type, defender.type());
     float random_factor = Random::get().range_float(0.85f, 1.0f);
 
-    int damage = static_cast<int>(std::floor(
-        (atk_val * skill.power / static_cast<float>(def_val))
-        * effectiveness * random_factor
-    ));
+    // 文档：floor(floor((Atk×Power)/Def)×克制×随机)
+    const float inner = std::floor(static_cast<float>(atk_val * skill.power) /
+                                   static_cast<float>(std::max(1, def_val)));
+    int damage = static_cast<int>(std::floor(inner * effectiveness * random_factor));
 
     last_damage_ = std::max(1, damage);
     return last_damage_;

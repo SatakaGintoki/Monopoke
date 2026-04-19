@@ -35,6 +35,7 @@ private:
     void render();          // 渲染画面
 
     sf::RenderWindow window_;
+    sf::View base_view_;
     StateManager state_manager_;
     bool running_ = false;
     float delta_time_ = 0.0f;

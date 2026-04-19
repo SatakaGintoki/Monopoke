@@ -1,13 +1,26 @@
 #include "BoardRenderer.h"
+#include "../ui/RetroUI.h"
 #include <cmath>
 
 BoardRenderer::BoardRenderer() {}
 
 void BoardRenderer::init(const Board& board) {
-    if (!font_.loadFromFile("C:/Windows/Fonts/msyh.ttc")) {
-        font_.loadFromFile("C:/Windows/Fonts/arial.ttf");
-    }
     calc_positions();
+    load_textures();
+}
+
+void BoardRenderer::load_textures() {
+    // 尝试加载贴图（静默失败，没找到就用默认画法）
+    tile_textures_[TileType::Start].loadFromFile("assets/textures/tile_start.png");
+    tile_textures_[TileType::Empty].loadFromFile("assets/textures/tile_empty.png");
+    tile_textures_[TileType::Wild].loadFromFile("assets/textures/tile_wild.png");
+    tile_textures_[TileType::Shop].loadFromFile("assets/textures/tile_shop.png");
+    tile_textures_[TileType::Event].loadFromFile("assets/textures/tile_event.png");
+    tile_textures_[TileType::Camp].loadFromFile("assets/textures/tile_camp.png");
+    tile_textures_[TileType::Battle].loadFromFile("assets/textures/tile_battle.png");
+
+    player1_texture_.loadFromFile("assets/textures/player1.png");
+    player2_texture_.loadFromFile("assets/textures/player2.png");
 }
 
 void BoardRenderer::calc_positions() {
@@ -99,146 +112,120 @@ void BoardRenderer::draw_board_frame(sf::RenderWindow& window) {
     float right = kBoardX + 4 * (kTileW + kGap);
     float bottom = kBoardY + 4 * (kTileH + kGap);
 
-    sf::RectangleShape center({right - left, bottom - top});
-    center.setPosition(left, top);
-    center.setFillColor(sf::Color(18, 18, 35, 180));
-    center.setOutlineThickness(1.f);
-    center.setOutlineColor(sf::Color(40, 40, 80, 100));
-    window.draw(center);
+    RetroUI::draw_box(window, left, top, right - left, bottom - top,
+                      sf::Color::White, sf::Color(40, 40, 40), 4.f);
 
     // 中央标题
-    sf::Text title;
-    title.setFont(font_);
-    title.setString(L"\u5730\u4ea7\u517d\u57df");
-    title.setCharacterSize(28);
-    title.setFillColor(sf::Color(100, 100, 160, 120));
-    auto tb = title.getLocalBounds();
-    title.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
-    title.setPosition((left + right) / 2.f, (top + bottom) / 2.f - 10.f);
-    window.draw(title);
+    RetroUI::draw_text(window, L"地产兽域",
+                       (left + right) / 2.f - 60.f, (top + bottom) / 2.f - 20.f,
+                       32, sf::Color(40, 40, 40), true);
 
-    sf::Text sub;
-    sub.setFont(font_);
-    sub.setString("MONOPOKE");
-    sub.setCharacterSize(12);
-    sub.setFillColor(sf::Color(80, 80, 120, 100));
-    auto sb = sub.getLocalBounds();
-    sub.setOrigin(sb.left + sb.width / 2.f, sb.top + sb.height / 2.f);
-    sub.setPosition((left + right) / 2.f, (top + bottom) / 2.f + 20.f);
-    window.draw(sub);
+    RetroUI::draw_text(window, L"MONOPOKE",
+                       (left + right) / 2.f - 40.f, (top + bottom) / 2.f + 20.f,
+                       16, sf::Color(100, 100, 100));
 }
 
 void BoardRenderer::draw_tile(sf::RenderWindow& window, const Tile& tile, int index) {
     sf::Vector2f pos = positions_[index];
 
-    // 底色阴影
-    sf::RectangleShape shadow({kTileW, kTileH});
-    shadow.setPosition(pos.x + 2.f, pos.y + 2.f);
-    shadow.setFillColor(sf::Color(0, 0, 0, 60));
-    window.draw(shadow);
+    // 如果有贴图，优先画贴图
+    if (tile_textures_.count(tile.type()) && tile_textures_[tile.type()].getSize().x > 0) {
+        sf::Sprite sprite(tile_textures_[tile.type()]);
+        // 自动缩放到格子大小
+        sprite.setScale(kTileW / sprite.getTexture()->getSize().x,
+                        kTileH / sprite.getTexture()->getSize().y);
+        sprite.setPosition(pos);
+        window.draw(sprite);
+    } else {
+        // 没有贴图，回退到经典宝可梦白底黑边格子
+        RetroUI::draw_box(window, pos.x, pos.y, kTileW, kTileH,
+                          sf::Color::White, sf::Color(40, 40, 40), 2.f);
 
-    // 主体
-    sf::RectangleShape rect({kTileW, kTileH});
-    rect.setPosition(pos);
-    rect.setFillColor(tile_color(tile.type()));
-    rect.setOutlineThickness(1.5f);
+        // 顶部色条（类型标识）
+        sf::RectangleShape bar({kTileW - 4.f, 4.f});
+        bar.setPosition(pos.x + 2.f, pos.y + 2.f);
+        sf::Color bc = tile_color(tile.type());
+        bar.setFillColor(bc);
+        window.draw(bar);
 
+        // 格子名称
+        RetroUI::draw_text(window, tile_label(tile.type()),
+                           pos.x + kTileW / 2.f - 16.f, pos.y + 10.f,
+                           14, sf::Color(40, 40, 40));
+
+        // 空地显示价格
+        if (tile.type() == TileType::Empty && !tile.has_owner()) {
+            RetroUI::draw_text(window, std::to_wstring(tile.price()) + L"G",
+                               pos.x + kTileW / 2.f - 14.f, pos.y + 34.f,
+                               12, sf::Color(100, 100, 100));
+        }
+    }
+
+    // 有主人时，无论有没有贴图，都画一层占领框
     if (tile.has_owner()) {
         sf::Color oc = (tile.owner_id() == kPlayer1Id)
-            ? sf::Color(80, 180, 255, 200) : sf::Color(255, 140, 80, 200);
-        rect.setOutlineColor(oc);
-    } else {
-        rect.setOutlineColor(sf::Color(255, 255, 255, 30));
-    }
-    window.draw(rect);
+            ? sf::Color(80, 180, 255) : sf::Color(255, 140, 80);
+        // 玩家拥有的地皮内边框染色
+        sf::RectangleShape inner({kTileW - 8.f, kTileH - 8.f});
+        inner.setPosition(pos.x + 4.f, pos.y + 4.f);
+        inner.setFillColor(sf::Color::Transparent);
+        inner.setOutlineColor(oc);
+        inner.setOutlineThickness(2.f);
+        window.draw(inner);
 
-    // 顶部色条（类型标识）
-    sf::RectangleShape bar({kTileW, 3.f});
-    bar.setPosition(pos);
-    sf::Color bc = tile_color(tile.type());
-    bar.setFillColor(sf::Color(
-        std::min(255, bc.r + 60),
-        std::min(255, bc.g + 60),
-        std::min(255, bc.b + 60), 200));
-    window.draw(bar);
-
-    // 格子名称
-    sf::Text label;
-    label.setFont(font_);
-    label.setString(tile_label(tile.type()));
-    label.setCharacterSize(13);
-    label.setFillColor(sf::Color(240, 240, 240));
-    auto lb = label.getLocalBounds();
-    label.setOrigin(lb.left + lb.width / 2.f, 0.f);
-    label.setPosition(pos.x + kTileW / 2.f, pos.y + 7.f);
-    window.draw(label);
-
-    // 空地显示价格
-    if (tile.type() == TileType::Empty && !tile.has_owner()) {
-        sf::Text price;
-        price.setFont(font_);
-        price.setString(std::to_string(tile.price()) + "G");
-        price.setCharacterSize(11);
-        price.setFillColor(sf::Color(200, 200, 150, 180));
-        auto pb = price.getLocalBounds();
-        price.setOrigin(pb.left + pb.width / 2.f, 0.f);
-        price.setPosition(pos.x + kTileW / 2.f, pos.y + 34.f);
-        window.draw(price);
-    }
-
-    // 有主人显示等级条
-    if (tile.has_owner()) {
         int lv = static_cast<int>(tile.level());
         // 等级小方块
         for (int j = 0; j < lv; ++j) {
             sf::RectangleShape dot({8.f, 4.f});
             dot.setPosition(pos.x + 14.f + j * 14.f, pos.y + kTileH - 10.f);
-            sf::Color dc = (tile.owner_id() == kPlayer1Id)
-                ? sf::Color(80, 180, 255) : sf::Color(255, 140, 80);
-            dot.setFillColor(dc);
+            dot.setFillColor(oc);
             window.draw(dot);
         }
     }
 
     // 格子编号（小字）
-    sf::Text num;
-    num.setFont(font_);
-    num.setString(std::to_string(index));
-    num.setCharacterSize(9);
-    num.setFillColor(sf::Color(255, 255, 255, 50));
-    num.setPosition(pos.x + 3.f, pos.y + kTileH - 14.f);
-    window.draw(num);
+    RetroUI::draw_text(window, std::to_wstring(index),
+                       pos.x + 4.f, pos.y + kTileH - 16.f,
+                       10, sf::Color(160, 160, 160));
 }
 
 void BoardRenderer::draw_player_token(sf::RenderWindow& window, const Player& p,
                                        sf::Color color, float offset_x) {
     sf::Vector2f center = tile_center(p.position());
+    sf::Texture* tex = (p.id() == 0) ? &player1_texture_ : &player2_texture_;
 
-    // 阴影
-    sf::CircleShape shadow(11.f);
-    shadow.setFillColor(sf::Color(0, 0, 0, 80));
-    shadow.setPosition(center.x - 11.f + offset_x + 1.f, center.y - 11.f + 2.f);
-    window.draw(shadow);
+    if (tex->getSize().x > 0) {
+        // 渲染玩家贴图
+        sf::Sprite sprite(*tex);
+        // 假设贴图缩放到 48x48
+        sprite.setScale(48.f / tex->getSize().x, 48.f / tex->getSize().y);
+        sprite.setPosition(center.x - 24.f + offset_x, center.y - 24.f);
+        window.draw(sprite);
 
-    // 主体
-    sf::CircleShape circle(11.f);
-    circle.setFillColor(color);
-    circle.setOutlineThickness(2.f);
-    circle.setOutlineColor(sf::Color(255, 255, 255, 200));
-    circle.setPosition(center.x - 11.f + offset_x, center.y - 11.f);
-    window.draw(circle);
+        // 玩家编号（浮在头顶）
+        RetroUI::draw_text(window, L"P" + std::to_wstring(p.id() + 1),
+                           center.x + offset_x - 8.f, center.y - 40.f,
+                           12, sf::Color(40, 40, 40));
+    } else {
+        // 阴影
+        sf::CircleShape shadow(11.f);
+        shadow.setFillColor(sf::Color(0, 0, 0, 80));
+        shadow.setPosition(center.x - 11.f + offset_x + 1.f, center.y - 11.f + 2.f);
+        window.draw(shadow);
 
-    // 玩家编号
-    sf::Text label;
-    label.setFont(font_);
-    label.setString(std::to_string(p.id() + 1));
-    label.setCharacterSize(12);
-    label.setFillColor(sf::Color::White);
-    label.setStyle(sf::Text::Bold);
-    auto lb = label.getLocalBounds();
-    label.setOrigin(lb.left + lb.width / 2.f, lb.top + lb.height / 2.f);
-    label.setPosition(center.x + offset_x, center.y - 1.f);
-    window.draw(label);
+        // 主体
+        sf::CircleShape circle(11.f);
+        circle.setFillColor(color);
+        circle.setOutlineThickness(2.f);
+        circle.setOutlineColor(sf::Color(40, 40, 40));
+        circle.setPosition(center.x - 11.f + offset_x, center.y - 11.f);
+        window.draw(circle);
+
+        // 玩家编号
+        RetroUI::draw_text(window, std::to_wstring(p.id() + 1),
+                           center.x + offset_x - 4.f, center.y - 8.f,
+                           12, sf::Color::White);
+    }
 }
 
 void BoardRenderer::render(sf::RenderWindow& window, const Board& board,

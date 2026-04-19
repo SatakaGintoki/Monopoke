@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 
+class Board;
+
 class AISystem {
 public:
     static AISystem& get();
@@ -27,6 +29,9 @@ public:
 
     // AI决策：是否使用道具
     bool should_use_heal_item(const Player& player) const;
+
+    // 选择驻守队伍索引（-1 表示不派驻守）
+    int choose_guardian_slot(const Player& player, const Board& board) const;
 
 private:
     AISystem() = default;

@@ -91,6 +91,9 @@ constexpr int kMaxLevel       = 20;     // 精灵最大等级
 constexpr int kDiceMin        = 1;      // 骰子最小值
 constexpr int kDiceMax        = 6;      // 骰子最大值
 
+// 双方累计回合（每次 next_turn +1）超过此值则平局（提案约 50 回合无结果）
+constexpr int kStalemateTurnCount = 100;
+
 // ── 地皮价格常量 ──────────────────────────────────────────
 constexpr int kPropertyBasePrices[4] = { 0, 300, 600, 1200 };   // 各等级基础价格
 constexpr int kPropertyTolls[4]      = { 0, 100, 200, 400 };    // 各等级基础过路费

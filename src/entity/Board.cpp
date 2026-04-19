@@ -1,5 +1,6 @@
 #include "Board.h"
 #include "../../src/json.hpp"
+#include <algorithm>
 #include <fstream>
 
 Board::Board() {
@@ -76,7 +77,51 @@ void Board::init_from_json(const std::string& json_path) {
             int price = t.value("price", 0);
             tiles_.emplace_back(idx, type, price);
         }
+        if (static_cast<int>(tiles_.size()) != kBoardSize) {
+            init_default();
+        }
     } catch (...) {
         init_default();
     }
+}
+
+void Board::restore_from_save(const nlohmann::json& board_json) {
+    if (!board_json.contains("tiles") || !board_json["tiles"].is_array()) {
+        init_default();
+        return;
+    }
+
+    std::vector<Tile> loaded;
+    loaded.reserve(kBoardSize);
+    for (const auto& t : board_json["tiles"]) {
+        int idx = t.value("index", 0);
+        TileType type = static_cast<TileType>(t.value("type", 1));
+        int price = t.value("price", 0);
+        loaded.emplace_back(idx, type, price);
+        Tile& tile = loaded.back();
+        int owner = t.value("owner_id", -1);
+        tile.set_owner(owner >= 0 ? owner : -1);
+        tile.set_property_level(static_cast<PropertyLevel>(t.value("level", 0)));
+        int g = t.value("guardian_idx", -1);
+        if (g >= 0) {
+            tile.set_guardian(g);
+        } else {
+            tile.clear_guardian();
+        }
+    }
+
+    if (static_cast<int>(loaded.size()) != kBoardSize) {
+        init_default();
+        return;
+    }
+
+    std::sort(loaded.begin(), loaded.end(),
+              [](const Tile& a, const Tile& b) { return a.index() < b.index(); });
+    for (int i = 0; i < kBoardSize; ++i) {
+        if (loaded[static_cast<size_t>(i)].index() != i) {
+            init_default();
+            return;
+        }
+    }
+    tiles_ = std::move(loaded);
 }

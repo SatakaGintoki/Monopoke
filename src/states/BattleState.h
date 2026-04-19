@@ -6,12 +6,22 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 
+struct BattleExitSnapshot {
+    bool valid = false;
+    BattleResult result = BattleResult::Ongoing;
+    BattleType type = BattleType::Wild;
+    int gold_reward = 0;
+};
+
 class BattleState : public GameState {
 public:
     BattleState(Monster& player_monster, Monster& enemy_monster, BattleType type, bool ai_controlled = false);
 
     void init() override;
     void cleanup() override;
+
+    // 供 PlayState::resume 读取上一场战斗结果（pop 时 cleanup 写入）
+    static BattleExitSnapshot consume_exit_snapshot();
     void handle_event(const sf::Event& event) override;
     void update(float dt) override;
     void render(sf::RenderWindow& window) override;
@@ -57,15 +67,17 @@ private:
     std::vector<Button> skill_buttons_;
     Button back_button_;
 
-    void draw_hp_bar(sf::RenderWindow& window, float x, float y, float w, float h,
-                     int current, int max, bool is_left);
-    void draw_monster_panel(sf::RenderWindow& window, const Monster& mon,
-                           float x, float y, bool is_left, bool is_player_mon);
+    static BattleExitSnapshot s_last_exit_;
+
+    void draw_status_box(sf::RenderWindow& window, const Monster& mon,
+                         float x, float y, bool is_player_mon);
     void create_action_buttons();
     void create_skill_buttons();
-    void draw_panel(sf::RenderWindow& window, float x, float y, float w, float h,
-                    sf::Color fill = sf::Color(25, 25, 50, 200));
-    void draw_label(sf::RenderWindow& window, const sf::String& text, float x, float y,
-                   int size, sf::Color color);
     bool contains(const Button& btn, const sf::Vector2f& point) const;
+
+    // 贴图支持
+    sf::Texture bg_texture_;
+    sf::Texture player_mon_tex_;
+    sf::Texture enemy_mon_tex_;
+    sf::View ui_view_;
 };

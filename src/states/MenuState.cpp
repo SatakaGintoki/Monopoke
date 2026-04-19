@@ -1,244 +1,191 @@
 #include "MenuState.h"
 #include "PlayState.h"
+#include "UITestState.h"
 #include "../core/Game.h"
-#include "../utils/Random.h"
 #include "../utils/SaveManager.h"
-#include <cmath>
+#include "../utils/AudioManager.h"
+#include "../ui/RetroUI.h"
+#include <iostream>
 
-bool Button::contains(const sf::Vector2f& point) const {
-    return shape.getGlobalBounds().contains(point);
-}
+// ── 布局常量 ────────────────────────────────────────────────────────────
+static constexpr float kWinW = 960.f;
+static constexpr float kWinH = 640.f;
 
+// 菜单框 (右下角偏上)
+static constexpr float kMenuX   = 600.f;
+static constexpr float kMenuY   = 240.f;
+static constexpr float kMenuW   = 320.f;
+static constexpr float kMenuH   = 270.f;
+static constexpr float kItemPadX= 40.f;
+static constexpr float kItemPadY= 24.f;
+static constexpr float kItemH   = 44.f;
+
+// 说明框 (底部通栏)
+static constexpr float kTipX    = 20.f;
+static constexpr float kTipY    = 480.f;
+static constexpr float kTipW    = 920.f;
+static constexpr float kTipH    = 140.f;
+
+// 菜单文字
+static const wchar_t* kLabels[5] = {
+    L"单机 vs AI",
+    L"本地双人",
+    L"继续游戏",
+    L"UI测试",
+    L"退出"
+};
+
+// 对应说明文字
+static const wchar_t* kTips[5] = {
+    L"与电脑 AI 对战的单人游戏模式",
+    L"两名玩家轮流使用同一键盘",
+    L"读取上次存档继续游戏",
+    L"快速进入商店/战斗/结算界面",
+    L"退出游戏"
+};
+
+// ── 经典宝可梦配色 ────────────────────────────────────────────────────────
+static const sf::Color kBgColor     {248, 248, 240};  // 极浅的米白
+static const sf::Color kBoxFill     {255, 255, 255};  // 纯白底
+static const sf::Color kBoxBorder   {40,  40,  40};   // 深灰/黑边
+static const sf::Color kTextColor   {40,  40,  40};   // 纯黑字
+
+// ────────────────────────────────────────────────────────────────────────
 void MenuState::init() {
-    if (!font_.loadFromFile("C:/Windows/Fonts/msyh.ttc")) {
-        font_.loadFromFile("C:/Windows/Fonts/arial.ttf");
-    }
+    RetroUI::init("assets/fonts/zpix.ttf");
+    AudioManager::get().play_music(MusicType::Menu);
 
-    // 标题
-    title_.setFont(font_);
-    title_.setString(L"\u5730\u4ea7\u517d\u57df");
-    title_.setCharacterSize(64);
-    title_.setFillColor(sf::Color(255, 220, 100));
-    title_.setStyle(sf::Text::Bold);
-    auto tb = title_.getLocalBounds();
-    title_.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
-    title_.setPosition(480.f, 160.f);
-
-    // 副标题
-    subtitle_.setFont(font_);
-    subtitle_.setString("M O N O P O K E");
-    subtitle_.setCharacterSize(20);
-    subtitle_.setFillColor(sf::Color(180, 180, 220));
-    subtitle_.setLetterSpacing(3.f);
-    auto sb = subtitle_.getLocalBounds();
-    subtitle_.setOrigin(sb.left + sb.width / 2.f, sb.top + sb.height / 2.f);
-    subtitle_.setPosition(480.f, 215.f);
-
-    // 版本号
-    version_.setFont(font_);
-    version_.setString("v0.2.0");
-    version_.setCharacterSize(12);
-    version_.setFillColor(sf::Color(100, 100, 130));
-    version_.setPosition(900.f, 620.f);
-
-    create_buttons();
-    create_particles();
-
-    // 背景装饰线
-    for (int i = 0; i < 6; ++i) {
-        sf::RectangleShape line({960.f, 1.f});
-        line.setFillColor(sf::Color(40, 40, 70, 40));
-        line.setPosition(0.f, 80.f + i * 100.f);
-        bg_lines_.push_back(line);
+    // 构建菜单项点击区域
+    item_rects_.clear();
+    for (int i = 0; i < 5; ++i) {
+        sf::FloatRect r;
+        r.left   = kMenuX + kItemPadX;
+        r.top    = kMenuY + kItemPadY + i * kItemH;
+        r.width  = kMenuW - kItemPadX * 2.f;
+        r.height = kItemH;
+        item_rects_.push_back(r);
     }
 }
 
-void MenuState::create_buttons() {
-    buttons_.clear();
-
-    const wchar_t* labels[] = {
-        L"\u5f00\u59cb\u6e38\u620f",
-        L"\u7ee7\u7eed\u6e38\u620f",
-        L"\u9000\u51fa"
-    };
-
-    for (int i = 0; i < 3; ++i) {
-        Button btn;
-
-        // 主体
-        btn.shape.setSize({260.f, 52.f});
-        btn.shape.setPosition(350.f, 300.f + i * 72.f);
-        btn.shape.setFillColor(sf::Color(35, 35, 65));
-        btn.shape.setOutlineThickness(1.5f);
-        btn.shape.setOutlineColor(sf::Color(80, 80, 140, 120));
-
-        // 发光层
-        btn.glow.setSize({264.f, 56.f});
-        btn.glow.setPosition(348.f, 298.f + i * 72.f);
-        btn.glow.setFillColor(sf::Color(100, 120, 255, 0));
-
-        // 文字
-        btn.text.setFont(font_);
-        btn.text.setString(labels[i]);
-        btn.text.setCharacterSize(22);
-        btn.text.setFillColor(sf::Color(200, 200, 230));
-        auto lb = btn.text.getLocalBounds();
-        btn.text.setOrigin(lb.left + lb.width / 2.f, lb.top + lb.height / 2.f);
-        btn.text.setPosition(480.f, 326.f + i * 72.f);
-
-        buttons_.push_back(btn);
-    }
-}
-
-void MenuState::create_particles() {
-    particles_.clear();
-    auto& rng = Random::get();
-
-    for (int i = 0; i < 40; ++i) {
-        Particle p;
-        float radius = 1.f + rng.range_float(0.f, 2.5f);
-        p.shape.setRadius(radius);
-        p.shape.setPosition(rng.range_float(0.f, 960.f), rng.range_float(0.f, 640.f));
-        p.velocity = {rng.range_float(-8.f, 8.f), rng.range_float(-12.f, -3.f)};
-        p.alpha = rng.range_float(20.f, 80.f);
-        p.alpha_speed = rng.range_float(15.f, 40.f);
-        p.shape.setFillColor(sf::Color(140, 160, 255, static_cast<sf::Uint8>(p.alpha)));
-        particles_.push_back(p);
-    }
-}
-
+// ────────────────────────────────────────────────────────────────────────
 void MenuState::handle_event(const sf::Event& event) {
-    if (event.type == sf::Event::MouseMoved) {
-        sf::Vector2f mouse(static_cast<float>(event.mouseMove.x),
-                           static_cast<float>(event.mouseMove.y));
-        for (auto& btn : buttons_) {
-            btn.hover = btn.contains(mouse);
+    // 键盘导航
+    if (event.type == sf::Event::KeyPressed) {
+        if (event.key.code == sf::Keyboard::Up) {
+            selected_ = (selected_ + 4) % 5;
+        } else if (event.key.code == sf::Keyboard::Down) {
+            selected_ = (selected_ + 1) % 5;
+        } else if (event.key.code == sf::Keyboard::Return ||
+                   event.key.code == sf::Keyboard::Space) {
+            goto confirm;
         }
     }
 
-    if (event.type == sf::Event::MouseButtonPressed &&
-        event.mouseButton.button == sf::Mouse::Left) {
-        sf::Vector2f mouse(static_cast<float>(event.mouseButton.x),
-                           static_cast<float>(event.mouseButton.y));
-        for (int i = 0; i < static_cast<int>(buttons_.size()); ++i) {
-            if (buttons_[i].contains(mouse)) {
-                if (i == 0) switch_state(Game::get().state_manager(), new PlayState());
-                if (i == 1) {
-                    // 继续游戏：检查存档是否存在
-                    if (SaveManager::get().has_save()) {
-                        // TODO: 加载存档并开始游戏
-                        switch_state(Game::get().state_manager(), new PlayState());
-                    }
-                }
-                if (i == 2) Game::get().exit();
+    // 鼠标移动 → 更新高亮
+    if (event.type == sf::Event::MouseMoved) {
+        sf::Vector2f mp = Game::get().window().mapPixelToCoords(
+            sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+        for (int i = 0; i < 5; ++i) {
+            if (item_rects_[i].contains(mp)) {
+                selected_ = i;
+                break;
             }
         }
     }
+
+    // 鼠标点击
+    if (event.type == sf::Event::MouseButtonPressed &&
+        event.mouseButton.button == sf::Mouse::Left) {
+        sf::Vector2f mp = Game::get().window().mapPixelToCoords(
+            sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+        for (int i = 0; i < 5; ++i) {
+            if (item_rects_[i].contains(mp)) {
+                selected_ = i;
+                goto confirm;
+            }
+        }
+    }
+
+    return;
+
+confirm:
+    switch (selected_) {
+        case 0:
+            switch_state(Game::get().state_manager(),
+                         new PlayState(false, GameMode::PvE));
+            return;
+        case 1:
+            switch_state(Game::get().state_manager(),
+                         new PlayState(false, GameMode::PvP));
+            return;
+        case 2:
+            if (SaveManager::get().has_save(SaveManager::kAutosavePath)) {
+                switch_state(Game::get().state_manager(), new PlayState(true));
+                return;
+            } else {
+                std::cerr << "[MenuState] 没有存档: "
+                          << SaveManager::kAutosavePath << "\n";
+            }
+            break;
+        case 3:
+            switch_state(Game::get().state_manager(), new UITestState());
+            return;
+        case 4:
+            Game::get().exit();
+            return;
+        default:
+            break;
+    }
 }
 
+// ────────────────────────────────────────────────────────────────────────
 void MenuState::update(float dt) {
     time_ += dt;
-
-    // 标题浮动动画
-    title_bounce_ = std::sin(time_ * 1.5f) * 6.f;
-    title_.setPosition(480.f, 160.f + title_bounce_);
-
-    // 副标题跟随
-    subtitle_.setPosition(480.f, 215.f + title_bounce_ * 0.4f);
-
-    // 按钮悬停动画
-    for (auto& btn : buttons_) {
-        float target = btn.hover ? 1.f : 0.f;
-        float speed = 5.f * dt;
-        if (btn.hover_anim < target) btn.hover_anim = std::min(btn.hover_anim + speed, target);
-        else btn.hover_anim = std::max(btn.hover_anim - speed, target);
-
-        // 插值颜色
-        sf::Uint8 r = static_cast<sf::Uint8>(35 + btn.hover_anim * 30);
-        sf::Uint8 g = static_cast<sf::Uint8>(35 + btn.hover_anim * 30);
-        sf::Uint8 b = static_cast<sf::Uint8>(65 + btn.hover_anim * 50);
-        btn.shape.setFillColor(sf::Color(r, g, b));
-
-        sf::Uint8 outline_a = static_cast<sf::Uint8>(120 + btn.hover_anim * 135);
-        btn.shape.setOutlineColor(sf::Color(100, 120, 200, outline_a));
-
-        sf::Uint8 glow_a = static_cast<sf::Uint8>(btn.hover_anim * 30);
-        btn.glow.setFillColor(sf::Color(80, 100, 220, glow_a));
-
-        sf::Uint8 text_brightness = static_cast<sf::Uint8>(200 + btn.hover_anim * 55);
-        btn.text.setFillColor(sf::Color(text_brightness, text_brightness, 255));
-    }
-
-    // 粒子动画
-    for (auto& p : particles_) {
-        p.shape.move(p.velocity * dt);
-        p.alpha += p.alpha_speed * dt;
-        if (p.alpha > 90.f) { p.alpha_speed = -std::abs(p.alpha_speed); }
-        if (p.alpha < 10.f) { p.alpha_speed = std::abs(p.alpha_speed); }
-        p.shape.setFillColor(sf::Color(140, 160, 255, static_cast<sf::Uint8>(p.alpha)));
-
-        // 超出屏幕则重置
-        auto pos = p.shape.getPosition();
-        if (pos.y < -10.f) {
-            p.shape.setPosition(Random::get().range_float(0.f, 960.f), 650.f);
-        }
-        if (pos.x < -10.f || pos.x > 970.f) {
-            p.shape.setPosition(Random::get().range_float(0.f, 960.f), 650.f);
-        }
-    }
 }
 
-void MenuState::draw_background(sf::RenderWindow& window) {
-    // 渐变背景（用多层矩形模拟）
-    for (int i = 0; i < 8; ++i) {
-        sf::RectangleShape band({960.f, 80.f});
-        band.setPosition(0.f, i * 80.f);
-        sf::Uint8 r = static_cast<sf::Uint8>(15 + i * 2);
-        sf::Uint8 g = static_cast<sf::Uint8>(15 + i * 2);
-        sf::Uint8 b = static_cast<sf::Uint8>(30 + i * 5);
-        band.setFillColor(sf::Color(r, g, b));
-        window.draw(band);
-    }
-
-    // 装饰线
-    for (auto& line : bg_lines_) {
-        window.draw(line);
-    }
-
-    // 粒子
-    for (auto& p : particles_) {
-        window.draw(p.shape);
-    }
-
-    // 中央装饰框
-    sf::RectangleShape frame({320.f, 380.f});
-    frame.setPosition(320.f, 120.f);
-    frame.setFillColor(sf::Color(20, 20, 45, 120));
-    frame.setOutlineThickness(1.f);
-    frame.setOutlineColor(sf::Color(60, 60, 120, 80));
-    window.draw(frame);
-}
-
+// ────────────────────────────────────────────────────────────────────────
 void MenuState::render(sf::RenderWindow& window) {
-    draw_background(window);
+    // ── 纯色平铺背景 ──────────────────────────────────────────
+    sf::RectangleShape bg({kWinW, kWinH});
+    bg.setFillColor(kBgColor);
+    window.draw(bg);
 
-    // 标题
-    window.draw(title_);
-    window.draw(subtitle_);
+    // ── 标题 ──────────────────────────────────────────────────
+    // 居中大字，无框，带经典阴影
+    RetroUI::draw_text(window, L"地产兽域",
+                       200.f, 100.f,
+                       64, kTextColor, true);
 
-    // 按钮
-    for (auto& btn : buttons_) {
-        window.draw(btn.glow);
-        window.draw(btn.shape);
-        window.draw(btn.text);
+    RetroUI::draw_text(window, L"MONOPOKE  v0.2.0",
+                       204.f, 180.f,
+                       20, sf::Color(100, 100, 100));
+
+    // ── 菜单框 ────────────────────────────────────────────────
+    RetroUI::draw_box(window,
+                      kMenuX, kMenuY,
+                      kMenuW, kMenuH,
+                      kBoxFill, kBoxBorder, 4.f);
+
+    for (int i = 0; i < 5; ++i) {
+        float ix = kMenuX + kItemPadX;
+        float iy = kMenuY + kItemPadY + i * kItemH;
+        RetroUI::draw_menu_item(window, kLabels[i], ix, iy,
+                                i == selected_, 24);
     }
 
-    // 底部装饰线
-    sf::RectangleShape bottom_line({400.f, 1.f});
-    bottom_line.setPosition(280.f, 530.f);
-    bottom_line.setFillColor(sf::Color(60, 60, 120, 60));
-    window.draw(bottom_line);
+    // ── 说明框 (底部通栏对话框) ───────────────────────────────
+    RetroUI::draw_box(window,
+                      kTipX, kTipY,
+                      kTipW, kTipH,
+                      kBoxFill, kBoxBorder, 4.f);
 
-    // 版本号
-    window.draw(version_);
+    RetroUI::draw_text(window, kTips[selected_],
+                       kTipX + 36.f, kTipY + 36.f,
+                       24, kTextColor);
+
+    // ── 操作提示（右下角） ────────────────────────────────────
+    RetroUI::draw_text(window,
+                       L"↑↓ 选择    Enter 确认",
+                       kWinW - 280.f, kWinH - 40.f,
+                       16, sf::Color(120, 120, 120));
 }

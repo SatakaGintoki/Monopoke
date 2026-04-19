@@ -1,7 +1,14 @@
 #include "ShopState.h"
 #include "../core/Game.h"
 #include "../system/ShopSystem.h"
+#include "../ui/RetroUI.h"
 #include <cmath>
+
+namespace {
+std::wstring utf8_to_wstring(const std::string& s) {
+    return sf::String::fromUtf8(s.begin(), s.end()).toWideString();
+}
+}
 
 ShopState::ShopState(Player& player) : player_(player) {}
 
@@ -61,14 +68,16 @@ void ShopState::init() {
     buy_button_.hover = false;
 
     message_ = L"\u6b22\u8fce\u5149\u4e34\u5546\u5e97\uff01";
+    ui_view_.setSize(1440.f, 960.f);
+    ui_view_.setCenter(720.f, 480.f);
 }
 
 void ShopState::cleanup() {}
 
 void ShopState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::MouseMoved) {
-        sf::Vector2f mouse(static_cast<float>(event.mouseMove.x),
-                           static_cast<float>(event.mouseMove.y));
+        sf::Vector2f mouse = Game::get().window().mapPixelToCoords(
+            sf::Vector2i(event.mouseMove.x, event.mouseMove.y), ui_view_);
 
         for (auto& btn : item_buttons_) {
             btn.hover = contains(btn, mouse);
@@ -82,8 +91,8 @@ void ShopState::handle_event(const sf::Event& event) {
 
     if (event.type == sf::Event::MouseButtonPressed &&
         event.mouseButton.button == sf::Mouse::Left) {
-        sf::Vector2f mouse(static_cast<float>(event.mouseButton.x),
-                           static_cast<float>(event.mouseButton.y));
+        sf::Vector2f mouse = Game::get().window().mapPixelToCoords(
+            sf::Vector2i(event.mouseButton.x, event.mouseButton.y), ui_view_);
 
         // Tab switching
         for (int i = 0; i < 2; ++i) {
@@ -113,7 +122,7 @@ void ShopState::handle_event(const sf::Event& event) {
         if (buy_button_.hover && selected_index_ >= 0 && selected_index_ < static_cast<int>(shop_items_.size())) {
             const Item& item = shop_items_[selected_index_];
             if (ShopSystem::get().buy_item(player_, item, 1)) {
-                message_ = L"\u8d2d\u4e70\u6210\u529f\uff01" + sf::String(item.name).toWideString();
+                message_ = L"\u8d2d\u4e70\u6210\u529f\uff01" + utf8_to_wstring(item.name);
                 refresh_items();
             } else {
                 message_ = L"\u91d1\u5e01\u4e0d\u8db3\uff01";
@@ -125,49 +134,34 @@ void ShopState::handle_event(const sf::Event& event) {
 void ShopState::update(float dt) {}
 
 void ShopState::render(sf::RenderWindow& window) {
-    window.clear(sf::Color(15, 15, 35));
+    window.setView(ui_view_);
+    // 纯色背景
+    sf::RectangleShape bg({1440.f, 960.f});
+    bg.setFillColor(sf::Color(248, 248, 240));
+    window.draw(bg);
 
-    // Background bands
-    for (int i = 0; i < 8; ++i) {
-        sf::RectangleShape band({960.f, 80.f});
-        band.setPosition(0.f, i * 80.f);
-        sf::Uint8 r = static_cast<sf::Uint8>(15 + i * 2);
-        band.setFillColor(sf::Color(r, r, 35 + i * 4));
-        window.draw(band);
-    }
+    // 标题
+    RetroUI::draw_text(window, L"商店", 480.f - 40.f, 20.f, 32, sf::Color(40, 40, 40), true);
 
-    // Title
-    sf::Text title;
-    title.setFont(font_);
-    title.setString(L"SHOP");
-    title.setCharacterSize(32);
-    title.setFillColor(sf::Color(255, 220, 100));
-    auto tb = title.getLocalBounds();
-    title.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
-    title.setPosition(480.f, 10.f);
-    window.draw(title);
+    // 玩家金币
+    std::wstring gold_str = L"拥有金币: " + std::to_wstring(player_.gold()) + L" G";
+    RetroUI::draw_text(window, gold_str, 750.f, 30.f, 20, sf::Color(40, 40, 40));
 
-    // Player gold display
-    sf::Text gold;
-    gold.setFont(font_);
-    gold.setString(L"\u91d1\u5e01: " + std::to_wstring(player_.gold()) + L" G");
-    gold.setCharacterSize(18);
-    gold.setFillColor(sf::Color(255, 220, 100));
-    gold.setPosition(700.f, 15.f);
-    window.draw(gold);
-
-    // Tab buttons
+    // Tabs
     for (int i = 0; i < 2; ++i) {
-        sf::Uint8 outline_a = static_cast<sf::Uint8>(120 + tab_buttons_[i].hover * 135);
-        tab_buttons_[i].shape.setOutlineColor(sf::Color(100, 120, 200, outline_a));
-        if (i == static_cast<int>(current_tab_)) {
-            tab_buttons_[i].shape.setFillColor(sf::Color(60, 60, 100));
-        }
-        window.draw(tab_buttons_[i].shape);
-        window.draw(tab_buttons_[i].text);
+        bool is_active = (i == 0 && current_tab_ == Tab::Consumable) ||
+                         (i == 1 && current_tab_ == Tab::Evolution);
+        RetroUI::draw_box(window, tab_buttons_[i].shape.getPosition().x, tab_buttons_[i].shape.getPosition().y,
+                          tab_buttons_[i].shape.getSize().x, tab_buttons_[i].shape.getSize().y,
+                          is_active ? sf::Color(200, 200, 200) : sf::Color::White,
+                          sf::Color(40, 40, 40), 2.f);
+        RetroUI::draw_text(window, tab_buttons_[i].text.getString().toWideString(),
+                           tab_buttons_[i].shape.getPosition().x + 20.f, tab_buttons_[i].shape.getPosition().y + 10.f,
+                           18, sf::Color(40, 40, 40));
     }
 
     // Item list
+    RetroUI::draw_box(window, 80.f, 100.f, 440.f, 450.f, sf::Color::White, sf::Color(40, 40, 40), 4.f);
     float start_y = 110.f;
     for (size_t i = 0; i < item_buttons_.size() && i < 8; ++i) {
         draw_item_button(window, {100.f, start_y + i * 55.f}, static_cast<int>(i));
@@ -178,71 +172,47 @@ void ShopState::render(sf::RenderWindow& window) {
         const Item& item = shop_items_[selected_index_];
         float px = 550.f, py = 100.f;
 
-        sf::RectangleShape panel({350.f, 150.f});
-        panel.setPosition(px, py);
-        panel.setFillColor(sf::Color(25, 25, 50, 230));
-        panel.setOutlineThickness(1.5f);
-        panel.setOutlineColor(sf::Color(60, 60, 120, 150));
-        window.draw(panel);
+        RetroUI::draw_box(window, px, py, 350.f, 150.f, sf::Color::White, sf::Color(40, 40, 40), 4.f);
 
-        sf::Text name;
-        name.setFont(font_);
-        name.setString(sf::String(item.name).toWideString());
-        name.setCharacterSize(20);
-        name.setFillColor(sf::Color(255, 220, 100));
-        name.setPosition(px + 20.f, py + 15.f);
-        window.draw(name);
+        RetroUI::draw_text(window, utf8_to_wstring(item.name), px + 20.f, py + 15.f, 24, sf::Color(40, 40, 40));
+        RetroUI::draw_text(window, L"价格: " + std::to_wstring(item.price) + L" G", px + 20.f, py + 50.f, 18, sf::Color(100, 100, 100));
 
-        sf::Text price;
-        price.setFont(font_);
-        price.setString(L"\u4ef7\u683c: " + std::to_wstring(item.price) + L" G");
-        price.setCharacterSize(16);
-        price.setFillColor(sf::Color(200, 200, 220));
-        price.setPosition(px + 20.f, py + 50.f);
-        window.draw(price);
-
-        sf::Text desc;
-        desc.setFont(font_);
+        std::wstring desc_str;
         if (item.type == ItemType::Heal50 || item.type == ItemType::Heal100) {
             int heal = (item.type == ItemType::Heal50) ? 50 : 100;
-            desc.setString(L"\u6cbb\u7597\u6548\u679c: +\u7f6e" + std::to_wstring(heal) + L" HP");
+            desc_str = L"治疗效果: +恢复" + std::to_wstring(heal) + L" HP";
         } else if (item.type == ItemType::Pokeball) {
-            desc.setString(L"\u8bdb\u6355\u91ce\u751f\u7cbe\u7075");
+            desc_str = L"捕捉野生精灵";
         } else if (item.type == ItemType::SuperBall) {
-            desc.setString(L"\u8bdb\u6355\u7387\u66f4\u9ad8");
+            desc_str = L"捕捉率更高";
         } else if (item.type == ItemType::Revive) {
-            desc.setString(L"\u590d\u6d3b\u6b7b\u4ea1\u7cbe\u7075");
+            desc_str = L"复活死亡精灵";
         } else {
-            desc.setString(L"\u8ba9\u7cbe\u7075\u8fdb\u5316");
+            desc_str = L"让精灵进化";
         }
-        desc.setCharacterSize(14);
-        desc.setFillColor(sf::Color(140, 140, 180));
-        desc.setPosition(px + 20.f, py + 80.f);
-        window.draw(desc);
+        RetroUI::draw_text(window, desc_str, px + 20.f, py + 80.f, 16, sf::Color(80, 80, 80));
 
-        sf::Uint8 outline_a = static_cast<sf::Uint8>(120 + buy_button_.hover * 135);
-        buy_button_.shape.setOutlineColor(sf::Color(100, 120, 200, outline_a));
-        window.draw(buy_button_.shape);
-        window.draw(buy_button_.text);
+        RetroUI::draw_box(window, buy_button_.shape.getPosition().x, buy_button_.shape.getPosition().y,
+                          buy_button_.shape.getSize().x, buy_button_.shape.getSize().y,
+                          buy_button_.hover ? sf::Color(220, 220, 220) : sf::Color::White,
+                          sf::Color(40, 40, 40), 2.f);
+        RetroUI::draw_text(window, buy_button_.text.getString().toWideString(),
+                           buy_button_.shape.getPosition().x + 50.f, buy_button_.shape.getPosition().y + 10.f,
+                           18, sf::Color(40, 40, 40));
     }
 
     // Back button
-    window.draw(back_button_.shape);
-    window.draw(back_button_.text);
+    RetroUI::draw_box(window, back_button_.shape.getPosition().x, back_button_.shape.getPosition().y,
+                      back_button_.shape.getSize().x, back_button_.shape.getSize().y,
+                      back_button_.hover ? sf::Color(220, 220, 220) : sf::Color::White,
+                      sf::Color(40, 40, 40), 2.f);
+    RetroUI::draw_text(window, back_button_.text.getString().toWideString(),
+                       back_button_.shape.getPosition().x + 40.f, back_button_.shape.getPosition().y + 10.f,
+                       18, sf::Color(40, 40, 40));
 
     // Message bar
-    sf::RectangleShape msg_bg({600.f, 35.f});
-    msg_bg.setPosition(180.f, 560.f);
-    msg_bg.setFillColor(sf::Color(20, 20, 45, 230));
-    window.draw(msg_bg);
-
-    sf::Text msg;
-    msg.setFont(font_);
-    msg.setString(message_);
-    msg.setCharacterSize(15);
-    msg.setFillColor(sf::Color(255, 230, 120));
-    msg.setPosition(195.f, 568.f);
-    window.draw(msg);
+    RetroUI::draw_box(window, 180.f, 560.f, 600.f, 50.f, sf::Color::White, sf::Color(40, 40, 40), 4.f);
+    RetroUI::draw_text(window, message_, 200.f, 575.f, 18, sf::Color(40, 40, 40));
 }
 
 void ShopState::draw_item_button(sf::RenderWindow& window, const sf::Vector2f& pos, int index) {
@@ -251,22 +221,15 @@ void ShopState::draw_item_button(sf::RenderWindow& window, const sf::Vector2f& p
     const Item& item = shop_items_[index];
     Button& btn = item_buttons_[index];
 
-    btn.shape.setSize({420.f, 50.f});
+    btn.shape.setSize({400.f, 50.f});
     btn.shape.setPosition(pos);
-    btn.shape.setFillColor(selected_index_ == index ? sf::Color(50, 50, 80) : sf::Color(35, 35, 65));
-    btn.shape.setOutlineThickness(1.5f);
-    sf::Uint8 outline_a = static_cast<sf::Uint8>(120 + btn.hover * 135);
-    btn.shape.setOutlineColor(sf::Color(100, 120, 200, outline_a));
 
-    btn.text.setFont(font_);
-    std::wstring label = sf::String(item.name).toWideString() + L"  " + std::to_wstring(item.price) + L" G";
-    btn.text.setString(label);
-    btn.text.setCharacterSize(16);
-    btn.text.setFillColor(btn.hover ? sf::Color(255, 255, 255) : sf::Color(200, 200, 230));
-    btn.text.setPosition(pos.x + 20.f, pos.y + 15.f);
+    RetroUI::draw_box(window, pos.x, pos.y, 400.f, 50.f,
+                      selected_index_ == index ? sf::Color(200, 200, 200) : sf::Color::White,
+                      sf::Color(40, 40, 40), 2.f);
 
-    window.draw(btn.shape);
-    window.draw(btn.text);
+    std::wstring label = utf8_to_wstring(item.name) + L"  " + std::to_wstring(item.price) + L" G";
+    RetroUI::draw_text(window, label, pos.x + 20.f, pos.y + 15.f, 18, sf::Color(40, 40, 40));
 }
 
 bool ShopState::contains(const Button& btn, const sf::Vector2f& point) const {

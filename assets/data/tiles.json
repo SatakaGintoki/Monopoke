@@ -1,0 +1,24 @@
+{
+  "tiles": [
+    { "index": 0, "type": 0, "price": 0 },
+    { "index": 1, "type": 1, "price": 200 },
+    { "index": 2, "type": 2, "price": 0 },
+    { "index": 3, "type": 1, "price": 250 },
+    { "index": 4, "type": 3, "price": 0 },
+    { "index": 5, "type": 1, "price": 300 },
+    { "index": 6, "type": 2, "price": 0 },
+    { "index": 7, "type": 4, "price": 0 },
+    { "index": 8, "type": 1, "price": 300 },
+    { "index": 9, "type": 5, "price": 0 },
+    { "index": 10, "type": 1, "price": 350 },
+    { "index": 11, "type": 2, "price": 0 },
+    { "index": 12, "type": 1, "price": 350 },
+    { "index": 13, "type": 3, "price": 0 },
+    { "index": 14, "type": 1, "price": 400 },
+    { "index": 15, "type": 4, "price": 0 },
+    { "index": 16, "type": 1, "price": 400 },
+    { "index": 17, "type": 2, "price": 0 },
+    { "index": 18, "type": 1, "price": 450 },
+    { "index": 19, "type": 6, "price": 0 }
+  ]
+}

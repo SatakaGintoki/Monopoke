@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Tile.h"
+#include "json.hpp"
 #include <vector>
 
 class Board {
@@ -23,6 +24,9 @@ public:
     // 初始化棋盘数据（从JSON或默认）
     void init_default();
     void init_from_json(const std::string& json_path);
+
+    // 从存档 JSON 的 "board" 对象恢复（含 owner、level、guardian_idx）
+    void restore_from_save(const nlohmann::json& board_json);
 
 private:
     std::vector<Tile> tiles_;
